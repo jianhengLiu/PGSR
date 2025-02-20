@@ -134,7 +134,7 @@ def render_set(model_path, name, iteration, views, scene, gaussians, pipeline, b
                 o3d.camera.PinholeCameraIntrinsic(W, H, view.Fx, view.Fy, view.Cx, view.Cy),
                 pose)
 
-def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool,
+def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, skip_eval : bool,
                  max_depth : float, voxel_size : float, num_cluster: int, use_depth_filter : bool):
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree)
@@ -169,6 +169,8 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
 
         if not skip_test:
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), scene, gaussians, pipeline, background)
+        if not skip_eval:
+             render_set(dataset.model_path, "eval", scene.loaded_iter, scene.getEvalCameras(), gaussians, pipeline, background)
 
 if __name__ == "__main__":
     torch.set_num_threads(8)
@@ -179,6 +181,7 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", default=-1, type=int)
     parser.add_argument("--skip_train", action="store_true")
     parser.add_argument("--skip_test", action="store_true")
+    parser.add_argument("--skip_eval", action="store_true")
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--max_depth", default=5.0, type=float)
     parser.add_argument("--voxel_size", default=0.002, type=float)
@@ -191,4 +194,4 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
     print(f"multi_view_num {model.multi_view_num}")
-    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.max_depth, args.voxel_size, args.num_cluster, args.use_depth_filter)
+    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.skip_eval, args.max_depth, args.voxel_size, args.num_cluster, args.use_depth_filter)

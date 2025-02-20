@@ -41,6 +41,7 @@ class SceneInfo(NamedTuple):
     point_cloud: BasicPointCloud
     train_cameras: list
     test_cameras: list
+    eval_cameras: list
     nerf_normalization: dict
     ply_path: str
 
@@ -146,11 +147,15 @@ def storePly(path, xyz, rgb):
     ply_data.write(path)
 
 def readColmapSceneInfo(path, images, eval, llffhold=8):
+    eval_cameras_extrinsic_file = os.path.join(path, "sparse", "eval_images.bin")
+    has_eval = os.path.exists(eval_cameras_extrinsic_file)
     try:
         cameras_extrinsic_file = os.path.join(path, "sparse", "images.bin")
         cameras_intrinsic_file = os.path.join(path, "sparse", "cameras.bin")
         cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
+        if has_eval:
+            eval_cam_extrinsics = read_extrinsics_binary(eval_cameras_extrinsic_file)
     except:
         cameras_extrinsic_file = os.path.join(path, "sparse", "images.txt")
         cameras_intrinsic_file = os.path.join(path, "sparse", "cameras.txt")
@@ -171,6 +176,14 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
             test_list = meta["test"]
             print(f"train_list {len(train_list)}, test_list {len(test_list)}")
 
+    if has_eval:
+        reading_dir = "eval_images"
+        eval_cam_infos_unsorted = readColmapCameras(cam_extrinsics=eval_cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
+        eval_cam_infos = sorted(eval_cam_infos_unsorted.copy(), key = lambda x : x.image_name)
+        eval_cam_infos = [c for idx, c in enumerate(eval_cam_infos)]
+    else:
+        eval_cam_infos = []
+        
     if train_list is not None:
         train_cam_infos = [c for idx, c in enumerate(cam_infos) if c.image_name in train_list]
         test_cam_infos = [c for idx, c in enumerate(cam_infos) if c.image_name in test_list]
@@ -187,7 +200,7 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     ply_path = os.path.join(path, "sparse/points3D.ply")
     bin_path = os.path.join(path, "sparse/points3D.bin")
     txt_path = os.path.join(path, "sparse/points3D.txt")
-    if not os.path.exists(ply_path) or True:
+    if not os.path.exists(ply_path):
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
             xyz, rgb, _ = read_points3D_binary(bin_path)
@@ -203,6 +216,7 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     scene_info = SceneInfo(point_cloud=pcd,
                            train_cameras=train_cam_infos,
                            test_cameras=test_cam_infos,
+                           eval_cameras=eval_cam_infos,
                            nerf_normalization=nerf_normalization,
                            ply_path=ply_path)
     return scene_info
