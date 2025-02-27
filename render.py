@@ -93,12 +93,14 @@ def render_set(model_path, name, iteration, views, scene, gaussians, pipeline, b
         normal = normal.detach().cpu().numpy()
         normal = ((normal+1) * 127.5).astype(np.uint8).clip(0, 255)
 
-        if name == 'test':
-            torchvision.utils.save_image(gt.clamp(0.0, 1.0), os.path.join(gts_path, view.image_name + ".png"))
-            torchvision.utils.save_image(rendering, os.path.join(render_path, view.image_name + ".png"))
-        else:
-            rendering_np = (rendering.permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-            cv2.imwrite(os.path.join(render_path, view.image_name + ".jpg"), rendering_np)
+        torchvision.utils.save_image(gt.clamp(0.0, 1.0), os.path.join(gts_path, view.image_name + ".png"))
+        torchvision.utils.save_image(rendering, os.path.join(render_path, view.image_name + ".png"))
+        # if name == 'test':
+        #     torchvision.utils.save_image(gt.clamp(0.0, 1.0), os.path.join(gts_path, view.image_name + ".png"))
+        #     torchvision.utils.save_image(rendering, os.path.join(render_path, view.image_name + ".png"))
+        # else:
+        #     rendering_np = (rendering.permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
+        #     cv2.imwrite(os.path.join(render_path, view.image_name + ".jpg"), rendering_np)
         cv2.imwrite(os.path.join(render_depth_path, view.image_name + ".jpg"), depth_color)
         cv2.imwrite(os.path.join(render_normal_path, view.image_name + ".jpg"), normal)
 
@@ -170,7 +172,7 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
         if not skip_test:
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), scene, gaussians, pipeline, background)
         if not skip_eval:
-             render_set(dataset.model_path, "eval", scene.loaded_iter, scene.getEvalCameras(), gaussians, pipeline, background)
+            render_set(dataset.model_path, "eval", scene.loaded_iter, scene.getEvalCameras(), scene, gaussians, pipeline, background)
 
 if __name__ == "__main__":
     torch.set_num_threads(8)
